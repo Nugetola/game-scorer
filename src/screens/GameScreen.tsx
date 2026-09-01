@@ -256,7 +256,7 @@ export default function GameScreen({ onNavigate }: GameScreenProps) {
         gameId &&
         gameMode && (
           <>
-            {/* Header */}
+            {/* Header — stays fixed at the top */}
             <View style={styles.header}>
               <Text style={styles.gameMode}>
                 {gameMode === 'SPOT_POOL' ? '🎱 Spot Pool' : '👥 Face Mode'}
@@ -286,82 +286,91 @@ export default function GameScreen({ onNavigate }: GameScreenProps) {
               </View>
             </View>
 
-            {gameMode === 'SPOT_POOL' && targetBall !== null && (
-              <View style={styles.targetBanner}>
-                <Text style={styles.targetBannerText}>
-                  🎯 Must contact: {targetBallLabel} (any ball can pot)
-                </Text>
+            {/* ✅ SIRREEFFAMA: hafuu screen-ichaa hundi ScrollView keessa —
+                kanaan dura, kubbaa gadii (fkf -12 hanga -15) yeroo tokko
+                tokko fuula bilbilaa gadi ta'ee (navigation bar jala),
+                scroll gochuun hin danda'amin, guutummaatti hin tuqamu ture. */}
+            {/* ✅ SIRREEFFAMA: ScrollView osoo hin taane, flex:1 (compact)
+                fayyadamna — qabeenyi (spacing) hundi xiqqaate, screen
+                tokko qofa irratti (scroll malee) haa gali. */}
+            <View style={styles.scrollArea}>
+              {gameMode === 'SPOT_POOL' && targetBall !== null && (
+                <View style={styles.targetBanner}>
+                  <Text style={styles.targetBannerText}>
+                    🎯 Must contact: {targetBallLabel} (any ball can pot)
+                  </Text>
+                </View>
+              )}
+
+              {/* Scoreboard */}
+              <Scoreboard scores={scores} gameMode={gameMode} leaderScore={leaderScore} />
+
+              {/* Player Selection Tabs */}
+              <View style={styles.playerTabsContainer}>
+                {scores.map((score, idx) => (
+                  <TouchableOpacity
+                    key={score.id}
+                    style={[
+                      styles.playerTab,
+                      selectedPlayerIdx === idx && styles.playerTabActive,
+                      score.status === 'DEACTIVATED' && styles.playerTabDeactivated,
+                    ]}
+                    onPress={() => setSelectedPlayerIdx(idx)}
+                    disabled={score.status === 'DEACTIVATED'}
+                  >
+                    <Text style={styles.playerTabText}>{score.playerName}</Text>
+                  </TouchableOpacity>
+                ))}
               </View>
-            )}
 
-            {/* Scoreboard */}
-            <Scoreboard scores={scores} gameMode={gameMode} leaderScore={leaderScore} />
-
-            {/* Player Selection Tabs */}
-            <View style={styles.playerTabsContainer}>
-              {scores.map((score, idx) => (
+              {/* Mode Toggle */}
+              <View style={styles.modeToggleContainer}>
                 <TouchableOpacity
-                  key={score.id}
-                  style={[
-                    styles.playerTab,
-                    selectedPlayerIdx === idx && styles.playerTabActive,
-                    score.status === 'DEACTIVATED' && styles.playerTabDeactivated,
-                  ]}
-                  onPress={() => setSelectedPlayerIdx(idx)}
-                  disabled={score.status === 'DEACTIVATED'}
+                  style={[styles.modeToggleButton, gridMode === 'POTTED' && styles.modeToggleActive]}
+                  onPress={() => setGridMode('POTTED')}
                 >
-                  <Text style={styles.playerTabText}>{score.playerName}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            {/* Mode Toggle */}
-            <View style={styles.modeToggleContainer}>
-              <TouchableOpacity
-                style={[styles.modeToggleButton, gridMode === 'POTTED' && styles.modeToggleActive]}
-                onPress={() => setGridMode('POTTED')}
-              >
-                <Text style={styles.modeToggleText}>⬆️ Score</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modeToggleButton, gridMode === 'PENALTY' && styles.modeToggleActive]}
-                onPress={() => setGridMode('PENALTY')}
-              >
-                <Text style={styles.modeToggleText}>⬇️ Penalty</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Foul Type Selector — only in Penalty mode */}
-            {gridMode === 'PENALTY' && (
-              <View style={styles.foulTypeContainer}>
-                <TouchableOpacity
-                  style={[styles.foulTypeChip, penaltyType === 'WRONG_TARGET' && styles.foulTypeChipActive]}
-                  onPress={() => setPenaltyType('WRONG_TARGET')}
-                >
-                  <Text style={[styles.foulTypeText, penaltyType === 'WRONG_TARGET' && styles.foulTypeTextActive]}>
-                    Wrong Target
-                  </Text>
+                  <Text style={styles.modeToggleText}>⬆️ Score</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.foulTypeChip, penaltyType === 'SCRATCH' && styles.foulTypeChipActive]}
-                  onPress={() => setPenaltyType('SCRATCH')}
+                  style={[styles.modeToggleButton, gridMode === 'PENALTY' && styles.modeToggleActive]}
+                  onPress={() => setGridMode('PENALTY')}
                 >
-                  <Text style={[styles.foulTypeText, penaltyType === 'SCRATCH' && styles.foulTypeTextActive]}>
-                    Scratch
-                  </Text>
+                  <Text style={styles.modeToggleText}>⬇️ Penalty</Text>
                 </TouchableOpacity>
               </View>
-            )}
 
-            {/* Ball Grid */}
-            {currentPlayer && currentPlayer.status === 'ACTIVE' && (
-              <BallGrid
-                mode={gridMode}
-                onBallSelected={handleBallSelected}
-                disabled={isLoading}
-                enabledBalls={enabledBalls}
-              />
-            )}
+              {/* Foul Type Selector — only in Penalty mode */}
+              {gridMode === 'PENALTY' && (
+                <View style={styles.foulTypeContainer}>
+                  <TouchableOpacity
+                    style={[styles.foulTypeChip, penaltyType === 'WRONG_TARGET' && styles.foulTypeChipActive]}
+                    onPress={() => setPenaltyType('WRONG_TARGET')}
+                  >
+                    <Text style={[styles.foulTypeText, penaltyType === 'WRONG_TARGET' && styles.foulTypeTextActive]}>
+                      Wrong Target
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.foulTypeChip, penaltyType === 'SCRATCH' && styles.foulTypeChipActive]}
+                    onPress={() => setPenaltyType('SCRATCH')}
+                  >
+                    <Text style={[styles.foulTypeText, penaltyType === 'SCRATCH' && styles.foulTypeTextActive]}>
+                      Scratch
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* Ball Grid */}
+              {currentPlayer && currentPlayer.status === 'ACTIVE' && (
+                <BallGrid
+                  mode={gridMode}
+                  onBallSelected={handleBallSelected}
+                  disabled={isLoading}
+                  enabledBalls={enabledBalls}
+                />
+              )}
+            </View>
           </>
         )
       )}
@@ -438,9 +447,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     backgroundColor: '#007AFF',
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    paddingTop: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    paddingTop: 4,
   },
   headerButtons: {
     flexDirection: 'row',
@@ -477,30 +486,34 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
   },
+  scrollArea: {
+    flex: 1,
+    justifyContent: 'space-between',
+  },
   targetBanner: {
     backgroundColor: '#FFF3E0',
-    paddingVertical: 6,
+    paddingVertical: 3,
     alignItems: 'center',
     borderBottomWidth: 1,
     borderBottomColor: '#FFE0B2',
   },
   targetBannerText: {
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: '700',
     color: '#E65100',
   },
   playerTabsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    paddingHorizontal: 12,
-    gap: 8,
-    marginVertical: 12,
+    paddingHorizontal: 10,
+    gap: 6,
+    marginVertical: 6,
   },
   playerTab: {
     backgroundColor: '#fff',
     borderRadius: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
     borderWidth: 2,
     borderColor: '#ddd',
     alignItems: 'center',
@@ -519,15 +532,15 @@ const styles = StyleSheet.create({
   },
   modeToggleContainer: {
     flexDirection: 'row',
-    paddingHorizontal: 12,
-    gap: 8,
-    marginBottom: 8,
+    paddingHorizontal: 10,
+    gap: 6,
+    marginBottom: 4,
   },
   modeToggleButton: {
     flex: 1,
     backgroundColor: '#fff',
     borderRadius: 6,
-    paddingVertical: 10,
+    paddingVertical: 6,
     alignItems: 'center',
     borderWidth: 2,
     borderColor: '#ddd',
@@ -537,20 +550,20 @@ const styles = StyleSheet.create({
     backgroundColor: '#E3F2FD',
   },
   modeToggleText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
     color: '#333',
   },
   foulTypeContainer: {
     flexDirection: 'row',
-    paddingHorizontal: 12,
-    gap: 8,
-    marginBottom: 8,
+    paddingHorizontal: 10,
+    gap: 6,
+    marginBottom: 4,
     justifyContent: 'center',
   },
   foulTypeChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
     borderRadius: 16,
     borderWidth: 1.5,
     borderColor: '#f44336',

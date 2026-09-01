@@ -24,7 +24,7 @@ export const Scoreboard: React.FC<ScoreboardProps> = ({ scores, leaderScore }) =
   return (
     <View style={styles.container}>
       <Text style={styles.title}>📊 Leaderboard</Text>
-      
+
       <View style={styles.scoreList}>
         {sortedScores.map((score, index) => {
           const isLeader = score.currentScore === leaderScore && score.status === 'ACTIVE';
@@ -84,14 +84,14 @@ export const Scoreboard: React.FC<ScoreboardProps> = ({ scores, leaderScore }) =
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 12,
-    marginVertical: 12,
+    paddingHorizontal: 10,
+    marginVertical: 4,
   },
   title: {
-    fontSize: 16,
+    fontSize: 13,
     fontWeight: '700',
     color: '#333',
-    marginBottom: 10,
+    marginBottom: 4,
   },
   scoreList: {
     width: '100%',
@@ -99,16 +99,16 @@ const styles = StyleSheet.create({
   scoreCard: {
     flexDirection: 'row',
     backgroundColor: '#fff',
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 8,
+    borderRadius: 8,
+    padding: 7,
+    marginBottom: 4,
     alignItems: 'center',
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
     shadowRadius: 2,
-    borderLeftWidth: 4,
+    borderLeftWidth: 3,
     borderLeftColor: '#4CAF50',
   },
   leaderCard: {
@@ -120,13 +120,13 @@ const styles = StyleSheet.create({
     borderLeftColor: '#9E9E9E',
   },
   rankBadge: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
     backgroundColor: '#4CAF50',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginRight: 8,
   },
   leaderRankBadge: {
     backgroundColor: '#FFB300',
@@ -137,14 +137,14 @@ const styles = StyleSheet.create({
   rankText: {
     color: '#fff',
     fontWeight: 'bold',
-    fontSize: 14,
+    fontSize: 12,
   },
   playerInfo: {
     flex: 1,
-    marginRight: 12,
+    marginRight: 8,
   },
   playerName: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     color: '#333',
   },
@@ -152,25 +152,25 @@ const styles = StyleSheet.create({
     textDecorationLine: 'line-through',
   },
   statusText: {
-    fontSize: 11,
+    fontSize: 9,
     color: '#f44336',
-    marginTop: 2,
+    marginTop: 1,
   },
   scoreInfo: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    width: 140,
+    width: 130,
   },
   scoreColumn: {
     alignItems: 'center',
   },
   scoreLabel: {
-    fontSize: 10,
+    fontSize: 9,
     color: '#999',
-    marginBottom: 2,
+    marginBottom: 1,
   },
   scoreValue: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
     color: '#333',
   },

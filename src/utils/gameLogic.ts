@@ -91,10 +91,13 @@ export function addPottedBall(pottedBalls: number[], ballValue: number): number[
 }
 
 /**
- * Apply penalty - deduct ball value from score (both modes)
+ * Apply penalty - deduct ball value from score (both modes).
+ * ✅ SIRREEFFAMA: score-ii 0 gadi (negative) ta'uu ni danda'a — kanaan
+ * dura Math.max(0, ...) score gara 0tti dhaabaa ture, ammaan tana hin
+ * dhaabu. Fakkeenya: 0 - 4 = -4, 12 - 15 = -3.
  */
 export function applyPenalty(currentScore: number, ballValue: number): number {
-  return Math.max(0, currentScore - ballValue);
+  return currentScore - ballValue;
 }
 
 /**
