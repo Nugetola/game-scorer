@@ -65,6 +65,16 @@ export class GameRepository {
     return (result?.count ?? 0) > 0;
   }
 
+  /**
+   * Rename a player. Note: game_scores.playerName is a denormalized
+   * snapshot taken at game-creation time and is intentionally left
+   * untouched here — past games keep showing the name as it was when
+   * they were played, only future games use the new name.
+   */
+  async updatePlayerName(id: string, name: string): Promise<void> {
+    await this.db.runAsync('UPDATE players SET name = ? WHERE id = ?', [name, id]);
+  }
+
   // ==================== GAMES ====================
 
   async createGame(mode: GameMode, playerIds: string[]): Promise<Game> {
@@ -106,6 +116,17 @@ export class GameRepository {
       "SELECT * FROM games WHERE status = 'IN_PROGRESS' ORDER BY startedAt DESC LIMIT 1"
     );
     return result || null;
+  }
+
+  /**
+   * Abandon/cancel a game without a winner — used when the scorekeeper
+   * wants to stop the current game and start a fresh one. Removes the
+   * game and all of its associated scores and penalties.
+   */
+  async deleteGame(gameId: string): Promise<void> {
+    await this.db.runAsync('DELETE FROM penalties WHERE gameId = ?', [gameId]);
+    await this.db.runAsync('DELETE FROM game_scores WHERE gameId = ?', [gameId]);
+    await this.db.runAsync('DELETE FROM games WHERE id = ?', [gameId]);
   }
 
   // ==================== GAME SCORES ====================
@@ -210,6 +231,14 @@ export class GameRepository {
     );
 
     return { id, timestamp, ballValue, type, reason };
+  }
+
+  /**
+   * Remove a single penalty row — used by the per-player Undo feature to
+   * cleanly revert an applyPenalty action from the audit trail.
+   */
+  async deletePenalty(penaltyId: string): Promise<void> {
+    await this.db.runAsync('DELETE FROM penalties WHERE id = ?', [penaltyId]);
   }
 
   async getPenaltiesByGameScore(gameScoreId: string): Promise<PenaltyRecord[]> {

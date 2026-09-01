@@ -99,3 +99,19 @@ export interface GameState {
   isEliminating: boolean; // indicate if elimination just occurred
   remainingTablePoints: number; // sum of unscored balls
 }
+
+/**
+ * ActionLogEntry - one scoring or penalty action taken by one player,
+ * used to drive PER-PLAYER undo/history. See utils/gameLogic.ts
+ * (replayActionLog) for how this is used.
+ */
+export interface ActionLogEntry {
+  id: string;
+  playerIdx: number; // index into the current game's scores[] array
+  kind: 'POT' | 'PENALTY';
+  ballValue: number;
+  penaltyType?: PenaltyType; // only set when kind === 'PENALTY'
+  reason?: string; // only set when kind === 'PENALTY'
+  penaltyId?: string; // DB id of the penalties row, only set when kind === 'PENALTY'
+  timestamp: number;
+}

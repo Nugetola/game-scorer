@@ -1,11 +1,12 @@
 /**
- * Ball Grid Component - Shows all scorable balls (4-15)
+ * Ball Grid Component - Shows all scorable balls (4-15), plus the
+ * special Break ball (Score mode only).
  * Supports both "Potted" (positive) and "Penalty" (negative) modes
  */
 
 import React from 'react';
 import { View, StyleSheet, Text, TouchableOpacity } from 'react-native';
-import { SCORABLE_BALLS } from '../constants/rules';
+import { SCORABLE_BALLS, BREAK_BALL_ID } from '../constants/rules';
 
 type GridMode = 'POTTED' | 'PENALTY';
 
@@ -13,39 +14,76 @@ interface BallGridProps {
   mode: GridMode;
   onBallSelected: (ballValue: number) => void;
   disabled?: boolean;
+  /**
+   * If provided, only balls in this list are tappable — every other
+   * ball renders greyed-out and non-pressable. Used in POTTED mode to
+   * restrict input to the single legal target ball. Leave undefined
+   * (e.g. in PENALTY mode) to allow any ball.
+   */
+  enabledBalls?: number[];
 }
 
-export const BallGrid: React.FC<BallGridProps> = ({ mode, onBallSelected, disabled = false }) => {
+export const BallGrid: React.FC<BallGridProps> = ({
+  mode,
+  onBallSelected,
+  disabled = false,
+  enabledBalls,
+}) => {
   const isPotted = mode === 'POTTED';
   const displayMode = isPotted ? 'Score Potted Ball' : 'Apply Penalty';
   const buttonColor = isPotted ? '#4CAF50' : '#f44336';
   const ballPrefix = isPotted ? '+' : '−';
 
+  const isBallEnabled = (ball: number): boolean => {
+    if (disabled) return false;
+    if (!enabledBalls) return true;
+    return enabledBalls.includes(ball);
+  };
+
+  const breakEnabled = isBallEnabled(BREAK_BALL_ID);
+
   return (
     <View style={styles.container}>
       <Text style={styles.modeLabel}>{displayMode}</Text>
-      
+
+      {/* ✅ HAARAA: "Break" ball — kubbaa addaa, Score mode qofa keessatti
+          mul'ata (Penalty grid keessa hin argamu). +6 kenna. */}
+      {isPotted && (
+        <TouchableOpacity
+          style={[styles.breakButton, { opacity: breakEnabled ? 1 : 0.3 }]}
+          onPress={() => {
+            if (breakEnabled) onBallSelected(BREAK_BALL_ID);
+          }}
+          disabled={!breakEnabled}
+        >
+          <Text style={styles.breakButtonText}>🎯 Break (+6)</Text>
+        </TouchableOpacity>
+      )}
+
       <View style={styles.gridContainer}>
         <View style={styles.ballRow}>
-          {SCORABLE_BALLS.map((ball: number) => (
-            <TouchableOpacity
-              key={ball}
-              style={[
-                styles.ballButton,
-                { backgroundColor: buttonColor, opacity: disabled ? 0.5 : 1 },
-              ]}
-              onPress={() => {
-                if (!disabled) {
-                  onBallSelected(ball);
-                }
-              }}
-              disabled={disabled}
-            >
-              <Text style={styles.ballValue}>
-                {ballPrefix}{ball}
-              </Text>
-            </TouchableOpacity>
-          ))}
+          {SCORABLE_BALLS.map((ball: number) => {
+            const enabled = isBallEnabled(ball);
+            return (
+              <TouchableOpacity
+                key={ball}
+                style={[
+                  styles.ballButton,
+                  { backgroundColor: buttonColor, opacity: enabled ? 1 : 0.3 },
+                ]}
+                onPress={() => {
+                  if (enabled) {
+                    onBallSelected(ball);
+                  }
+                }}
+                disabled={!enabled}
+              >
+                <Text style={styles.ballValue}>
+                  {ballPrefix}{ball}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
       </View>
     </View>
@@ -63,6 +101,25 @@ const styles = StyleSheet.create({
     color: '#333',
     marginBottom: 8,
     textAlign: 'center',
+  },
+  breakButton: {
+    backgroundColor: '#FFB300',
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+    marginHorizontal: 8,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3,
+  },
+  breakButtonText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: 'bold',
   },
   gridContainer: {
     paddingHorizontal: 8,

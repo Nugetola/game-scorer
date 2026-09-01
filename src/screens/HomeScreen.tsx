@@ -21,18 +21,58 @@ interface HomeScreenProps {
   onNavigate: (screen: ScreenName) => void;
 }
 
+const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
 export default function HomeScreen({ onNavigate }: HomeScreenProps) {
-  const { players, fetchPlayers, addPlayer } = usePlayerStore();
+  const { players, fetchPlayers, addPlayer, updatePlayer } = usePlayerStore();
   const { startNewGame } = useGameStore();
 
   const [newPlayerName, setNewPlayerName] = useState('');
   const [gameMode, setGameMode] = useState<'SPOT_POOL' | 'FACE_MODE' | null>(null);
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [quickAddLoading, setQuickAddLoading] = useState(false);
+
+  // ✅ HAARAA: maqaa taphataa gulaaluuf (edit) — id-ii taphataa amma
+  // gulaalamaa jiruu fi barreeffama haaraa isaa tokkicha of keessatti qaba.
+  const [editingPlayerId, setEditingPlayerId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState('');
+  const [renameLoading, setRenameLoading] = useState(false);
 
   useEffect(() => {
     fetchPlayers();
   }, [fetchPlayers]);
+
+  // Find the next unused letter (A, B, C...) based on existing player names
+  const getNextLetterName = (): string => {
+    const existingNames = new Set(players.map((p) => p.name.toUpperCase()));
+    for (const letter of ALPHABET) {
+      if (!existingNames.has(letter)) {
+        return letter;
+      }
+    }
+    // Fallback if all 26 letters are taken: A1, A2, A3...
+    let suffix = 1;
+    while (existingNames.has(`A${suffix}`)) {
+      suffix++;
+    }
+    return `A${suffix}`;
+  };
+
+  const handleQuickAddPlayer = async () => {
+    const nextName = getNextLetterName();
+    setQuickAddLoading(true);
+    try {
+      const player = await addPlayer(nextName);
+      if (!player) {
+        Alert.alert('Error', `Could not add player "${nextName}". It may already exist.`);
+      }
+    } catch (err) {
+      Alert.alert('Error', err instanceof Error ? err.message : 'Failed to create player');
+    } finally {
+      setQuickAddLoading(false);
+    }
+  };
 
   const handleCreatePlayer = async () => {
     const trimmedName = newPlayerName.trim();
@@ -42,10 +82,46 @@ export default function HomeScreen({ onNavigate }: HomeScreenProps) {
     }
 
     try {
-      await addPlayer(trimmedName);
+      const player = await addPlayer(trimmedName);
+      if (!player) {
+        Alert.alert('Error', `Could not add player "${trimmedName}". It may already exist.`);
+        return;
+      }
       setNewPlayerName('');
     } catch (err) {
       Alert.alert('Error', err instanceof Error ? err.message : 'Failed to create player');
+    }
+  };
+
+  const startEditingPlayer = (playerId: string, currentName: string) => {
+    setEditingPlayerId(playerId);
+    setEditingName(currentName);
+  };
+
+  const cancelEditingPlayer = () => {
+    setEditingPlayerId(null);
+    setEditingName('');
+  };
+
+  const handleSaveRename = async (playerId: string) => {
+    const trimmed = editingName.trim();
+    if (!trimmed) {
+      Alert.alert('Error', 'Player name cannot be empty');
+      return;
+    }
+
+    setRenameLoading(true);
+    try {
+      const success = await updatePlayer(playerId, trimmed);
+      if (success) {
+        cancelEditingPlayer();
+      } else {
+        Alert.alert('Error', `Could not rename to "${trimmed}". It may already exist.`);
+      }
+    } catch (err) {
+      Alert.alert('Error', err instanceof Error ? err.message : 'Failed to rename player');
+    } finally {
+      setRenameLoading(false);
     }
   };
 
@@ -72,7 +148,6 @@ export default function HomeScreen({ onNavigate }: HomeScreenProps) {
 
     setLoading(true);
     try {
-      // Map selectedPlayerIds to objects containing id and name for startNewGame
       const selectedPlayersObjects = players
         .filter((p) => selectedPlayerIds.includes(p.id))
         .map((p) => ({ id: p.id, name: p.name }));
@@ -148,10 +223,26 @@ export default function HomeScreen({ onNavigate }: HomeScreenProps) {
       {/* Player Management */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Create New Player</Text>
+
+        {/* Quick Add (A, B, C...) */}
+        <TouchableOpacity
+          style={styles.quickAddButton}
+          onPress={handleQuickAddPlayer}
+          disabled={quickAddLoading}
+        >
+          {quickAddLoading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.quickAddButtonText}>
+              ⚡ Quick Add ({getNextLetterName()})
+            </Text>
+          )}
+        </TouchableOpacity>
+
         <View style={styles.inputContainer}>
           <TextInput
             style={styles.input}
-            placeholder="Enter player name"
+            placeholder="Or enter a custom name"
             value={newPlayerName}
             onChangeText={setNewPlayerName}
             placeholderTextColor="#999"
@@ -173,6 +264,42 @@ export default function HomeScreen({ onNavigate }: HomeScreenProps) {
           </Text>
           {players.map((item) => {
             const isSelected = selectedPlayerIds.includes(item.id);
+            const isEditing = editingPlayerId === item.id;
+
+            if (isEditing) {
+              return (
+                <View key={item.id} style={[styles.playerItem, styles.playerItemEditing]}>
+                  <TextInput
+                    style={styles.editInput}
+                    value={editingName}
+                    onChangeText={setEditingName}
+                    autoFocus
+                    autoCapitalize="words"
+                    autoCorrect={false}
+                    placeholderTextColor="#999"
+                  />
+                  <TouchableOpacity
+                    style={styles.editSaveButton}
+                    onPress={() => handleSaveRename(item.id)}
+                    disabled={renameLoading}
+                  >
+                    {renameLoading ? (
+                      <ActivityIndicator color="#fff" size="small" />
+                    ) : (
+                      <Text style={styles.editButtonText}>✓</Text>
+                    )}
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.editCancelButton}
+                    onPress={cancelEditingPlayer}
+                    disabled={renameLoading}
+                  >
+                    <Text style={styles.editButtonText}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+              );
+            }
+
             return (
               <TouchableOpacity
                 key={item.id}
@@ -186,6 +313,16 @@ export default function HomeScreen({ onNavigate }: HomeScreenProps) {
                   {isSelected ? '✅' : '⭕'}
                 </Text>
                 <Text style={styles.playerItemName}>{item.name}</Text>
+                <TouchableOpacity
+                  style={styles.editIconButton}
+                  onPress={(e) => {
+                    e.stopPropagation?.();
+                    startEditingPlayer(item.id, item.name);
+                  }}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Text style={styles.editIcon}>✏️</Text>
+                </TouchableOpacity>
               </TouchableOpacity>
             );
           })}
@@ -263,6 +400,23 @@ const styles = StyleSheet.create({
     color: '#333',
     fontWeight: '500',
   },
+  quickAddButton: {
+    backgroundColor: '#FF9800',
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginBottom: 10,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+  },
+  quickAddButtonText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 14,
+  },
   inputContainer: {
     flexDirection: 'row',
     gap: 8,
@@ -305,6 +459,10 @@ const styles = StyleSheet.create({
     borderColor: '#4CAF50',
     backgroundColor: '#f0f8f0',
   },
+  playerItemEditing: {
+    borderColor: '#007AFF',
+    backgroundColor: '#E3F2FD',
+  },
   playerItemCheckbox: {
     marginRight: 10,
     fontSize: 16,
@@ -314,6 +472,47 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#333',
     fontWeight: '500',
+  },
+  editIconButton: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  editIcon: {
+    fontSize: 14,
+  },
+  editInput: {
+    flex: 1,
+    backgroundColor: '#fff',
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: '#007AFF',
+    fontSize: 14,
+    color: '#333',
+    marginRight: 8,
+  },
+  editSaveButton: {
+    backgroundColor: '#4CAF50',
+    borderRadius: 6,
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 6,
+  },
+  editCancelButton: {
+    backgroundColor: '#9E9E9E',
+    borderRadius: 6,
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  editButtonText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 14,
   },
   startButton: {
     backgroundColor: '#007AFF',
