@@ -259,6 +259,22 @@ export function replayActionLog(
           if (i === idx) next = { ...next, pottedBalls: newPotted };
           return next;
         });
+
+        // ✅ SIRREEFFAMA: Face Mode maxPotential — kanaan dura herregamee
+        // hin beekamne (dhaabbataa 120 ta'ee hafaa ture). Amma: taphataan
+        // kubbaa hafe HUNDA yoo isa qofti pote, net score dhumaa isaa maal
+        // ta'a (best case isaaf) jedhee herregama. p1New - p2New net value
+        // dhugaa (signed) deebisa, sababiin isaa lama keessaa tokko yeroo
+        // hunda 0 waan ta'eef.
+        const globalPottedBallsFM: number[] = [];
+        scores.forEach((s) => globalPottedBallsFM.push(...s.pottedBalls));
+        const remainingPointsFM = calculateRemainingTablePoints(globalPottedBallsFM);
+        const netValueFM = p1New - p2New;
+        scores = scores.map((s, i) => {
+          if (i === 0) return { ...s, maxPotential: netValueFM + remainingPointsFM };
+          if (i === 1) return { ...s, maxPotential: remainingPointsFM - netValueFM };
+          return s;
+        });
       } else {
         const value = pointValueForBall(entry.ballValue);
         const newScore = addPointsSpotPool(score.currentScore, value);
@@ -292,6 +308,20 @@ export function replayActionLog(
           if (i === 0) next = { ...next, currentScore: p1New };
           if (i === 1) next = { ...next, currentScore: p2New };
           return next;
+        });
+
+        // ✅ SIRREEFFAMA: same maxPotential fix as the POT branch above.
+        // Penalties don't change pottedBalls, so remainingPoints is
+        // unchanged, but netValue shifted — maxPotential must still be
+        // recomputed off the new scores.
+        const globalPottedBallsFM: number[] = [];
+        scores.forEach((s) => globalPottedBallsFM.push(...s.pottedBalls));
+        const remainingPointsFM = calculateRemainingTablePoints(globalPottedBallsFM);
+        const netValueFM = p1New - p2New;
+        scores = scores.map((s, i) => {
+          if (i === 0) return { ...s, maxPotential: netValueFM + remainingPointsFM };
+          if (i === 1) return { ...s, maxPotential: remainingPointsFM - netValueFM };
+          return s;
         });
       } else {
         const newScore = applyPenalty(score.currentScore, entry.ballValue);

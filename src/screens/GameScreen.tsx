@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { useGameStore } from '../store';
 import { BallGrid, Scoreboard } from '../components';
+import PlayerHistoryButton from '../components/PlayerHistoryButton';
 import { SCORABLE_BALLS, BREAK_BALL_ID } from '../constants/rules';
 import { GameMode, PenaltyType } from '../types';
 
@@ -238,8 +239,21 @@ export default function GameScreen({ onNavigate }: GameScreenProps) {
   scores.forEach((s) => s.pottedBalls.forEach((b) => pottedAnywhere.add(b)));
   const remainingBalls = [BREAK_BALL_ID, ...SCORABLE_BALLS].filter((b) => !pottedAnywhere.has(b));
 
-  const enabledBalls =
-    gameMode === 'SPOT_POOL' && gridMode === 'POTTED' ? remainingBalls : undefined;
+  // Ball availability is a physical-table rule, not a scoring-mode rule —
+  // a ball that's been potted is gone from the table regardless of which
+  // mode recorded it, so both modes use the same remainingBalls list.
+  // (Scoring math and winner/elimination logic stay fully separate in
+  // gameLogic.ts — this branch only decides which balls are tappable.)
+  let enabledBalls: number[] | undefined;
+  if (gridMode !== 'POTTED') {
+    enabledBalls = undefined; // Penalty grid: all balls always selectable
+  } else if (gameMode === 'SPOT_POOL') {
+    enabledBalls = remainingBalls;
+  } else if (gameMode === 'FACE_MODE') {
+    enabledBalls = remainingBalls;
+  } else {
+    enabledBalls = undefined;
+  }
 
   const targetBallLabel = targetBall === BREAK_BALL_ID ? 'Break' : `Ball ${targetBall}`;
 
@@ -308,18 +322,20 @@ export default function GameScreen({ onNavigate }: GameScreenProps) {
               {/* Player Selection Tabs */}
               <View style={styles.playerTabsContainer}>
                 {scores.map((score, idx) => (
-                  <TouchableOpacity
-                    key={score.id}
-                    style={[
-                      styles.playerTab,
-                      selectedPlayerIdx === idx && styles.playerTabActive,
-                      score.status === 'DEACTIVATED' && styles.playerTabDeactivated,
-                    ]}
-                    onPress={() => setSelectedPlayerIdx(idx)}
-                    disabled={score.status === 'DEACTIVATED'}
-                  >
-                    <Text style={styles.playerTabText}>{score.playerName}</Text>
-                  </TouchableOpacity>
+                  <View key={score.id} style={styles.playerTabRow}>
+                    <TouchableOpacity
+                      style={[
+                        styles.playerTab,
+                        selectedPlayerIdx === idx && styles.playerTabActive,
+                        score.status === 'DEACTIVATED' && styles.playerTabDeactivated,
+                      ]}
+                      onPress={() => setSelectedPlayerIdx(idx)}
+                      disabled={score.status === 'DEACTIVATED'}
+                    >
+                      <Text style={styles.playerTabText}>{score.playerName}</Text>
+                    </TouchableOpacity>
+                    <PlayerHistoryButton playerIdx={idx} playerName={score.playerName} />
+                  </View>
                 ))}
               </View>
 
@@ -517,6 +533,11 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#ddd',
     alignItems: 'center',
+  },
+  playerTabRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
   },
   playerTabActive: {
     borderColor: '#007AFF',
